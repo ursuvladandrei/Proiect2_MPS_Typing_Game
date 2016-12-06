@@ -62,8 +62,8 @@ public class Chat : MonoBehaviour
     public bool leaderBoardState;
     public bool enterNameState;
 
-    private const int POINTSTOMEDIUM = 20;
-    private const int POINTSTOHARD = 60;
+    private const int POINTSTOMEDIUM = 40;
+    private const int POINTSTOHARD = 100;
 
     private const string WORDS_FILENAME = "words.txt";
     private const string LEADERBOARD_FILENAME = "leaderboard.txt";
@@ -111,7 +111,7 @@ public class Chat : MonoBehaviour
                     GUI.Label(new Rect((Screen.width - size.x) / 2 + offsetX, (Screen.height - size.y) / 2 + offsetY, size.x, size.y), currentString);
                     resetRotation();
                 }
-                else if (check == 4)        // different letters size
+             /*   else if (check == 4)        // different letters size
                 {
                     int t = (int)((Screen.width - size.x) / 2 + offsetX);
                     int i = 0;
@@ -126,7 +126,7 @@ public class Chat : MonoBehaviour
                         i++;
                     }
                     GUI.skin.label.fontSize = q;
-                }
+                }*/
             }
             else if (difficulty == 1)           // medium -> combined easy animations and random change during setup
             {
@@ -260,13 +260,18 @@ public class Chat : MonoBehaviour
 
             // Enter listener
             if (Event.current.keyCode == KeyCode.Return && !string.IsNullOrEmpty(currentMessage.Trim()))
+            {
                 checkWord();
+            }
 
             // Send button action
             if (GUI.Button(new Rect(Screen.width - 80, Screen.height - 40, 80, 20), "Send"))
             {
                 if (!string.IsNullOrEmpty(currentMessage.Trim()))
+                {
                     checkWord();
+                }
+                   
             }
         } else if (enterNameState)
         {
@@ -403,45 +408,65 @@ public class Chat : MonoBehaviour
 
     private void checkWord()
     {
-
         if (currentMessage.Equals(currentString))
         {
-            score++;
-            if (getTime() <= 1)
+            if (getTime() > 20 * 1/currentString.Length)
             {
-                score++;
-                bonusColor = new Color(0, 1, 0, 1);
+                switch (difficulty) 
+                {
+                    case 0:  score += 5;
+                        break;
+                    case 1: score += 10;
+                        break;
+                    case 2: score += 20;
+                        break;
+                }
             }
             else
-                bonusColor = new Color(1, 1, 1, 1);
-
-            currentString = words[rd.Next(words.Count)];
-            reset(0);
-            if (score >= POINTSTOHARD)
             {
-                difficulty = 2;
+                switch (difficulty)
+                {
+                    case 0:
+                        score += 1;
+                        break;
+                    case 1:
+                        score += 5;
+                        break;
+                    case 2:
+                        score += 10;
+                        break;
+                }
             }
-            else if (score >= POINTSTOMEDIUM)
-            {
-                difficulty = 1;
-            }
+            reset(0);          
         }
         else
-        {
+        {           
             lives--;
-            if (lives == 0)
-                runningState = false;
-
-            currentString = words[rd.Next(words.Count)];
+            checkIfAlive();
             reset(0);
         }
 
         currentMessage = string.Empty;
 
-        if (lives == 0)
-        {
-            runningState = false;
+        checkIfAlive();
+        checkLevel();
+        
+    }
 
+    private void checkIfAlive()
+    {
+        runningState = lives > 0;
+    }
+
+    private void checkLevel()
+    {
+        if (score >= POINTSTOHARD)
+        {
+            difficulty = 2;
+        }
+        else if (score >= POINTSTOMEDIUM)
+        {
+            difficulty = 1;
         }
     }
 
@@ -536,7 +561,6 @@ public class Chat : MonoBehaviour
         while ((line = file.ReadLine()) != null)
             words.Add(line);
 
-        currentString = words[rd.Next(words.Count)];
         reset(0);
         difficulty = 0;
         name = "";
@@ -549,17 +573,20 @@ public class Chat : MonoBehaviour
             time += Time.deltaTime;
             if (difficulty == 0 && time >= easyTime)
             {
-                currentString = words[rd.Next(words.Count)];
+                lives--;
+                checkIfAlive();
                 reset(0);
             }
             else if (difficulty == 1 && time >= mediumTime)
             {
-                currentString = words[rd.Next(words.Count)];
+                lives--;
+                checkIfAlive();
                 reset(0);
             }
             else if (difficulty == 2 && time >= hardTime)
             {
-                currentString = words[rd.Next(words.Count)];
+                lives--;
+                checkIfAlive();
                 reset(0);
             }
         }
@@ -584,6 +611,7 @@ public class Chat : MonoBehaviour
     // reset 1 soft reset (for mid change during gameplay)
     private void reset(int set)
     {
+        currentString = words[rd.Next(words.Count)];
         sizes.Clear();
         for (int i = 0; i < currentString.Length; i++)
         {
@@ -603,9 +631,9 @@ public class Chat : MonoBehaviour
             offsetX = 0;
             offsetY = 0;
 
-            easyTime = 0.95f * currentString.Length;
+            easyTime = 0.65f * currentString.Length;
             mediumTime = 0.75f * currentString.Length;
-            hardTime = 0.6f * currentString.Length;
+            hardTime = 0.85f * currentString.Length;
         }
         
     }
