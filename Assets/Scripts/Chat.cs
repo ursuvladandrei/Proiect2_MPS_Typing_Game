@@ -52,6 +52,7 @@ public class Chat : MonoBehaviour
     public String name;
     private List<String> leaderboardNames;
     private List<int> leaderboardPoints;
+    private Boolean updatedLeaderboard = false;
     private int ok;
 
     public int difficulty;
@@ -68,6 +69,14 @@ public class Chat : MonoBehaviour
     private const string WORDS_FILENAME = "words.txt";
     private const string LEADERBOARD_FILENAME = "leaderboard.txt";
     private const int MAX_WORD_SIZE = 25;
+
+    private AudioSource[] source;
+    private AudioSource correctSound;
+    private AudioSource wrongSound;
+    private AudioSource ambientalSound;
+    private float volLowRange = .5f;
+    private float volHighRange = 1.0f;
+
 
     private void OnGUI()
     {
@@ -111,7 +120,7 @@ public class Chat : MonoBehaviour
                     GUI.Label(new Rect((Screen.width - size.x) / 2 + offsetX, (Screen.height - size.y) / 2 + offsetY, size.x, size.y), currentString);
                     resetRotation();
                 }
-             /*   else if (check == 4)        // different letters size
+               else if (check == 4)        // different letters size
                 {
                     int t = (int)((Screen.width - size.x) / 2 + offsetX);
                     int i = 0;
@@ -126,7 +135,7 @@ public class Chat : MonoBehaviour
                         i++;
                     }
                     GUI.skin.label.fontSize = q;
-                }*/
+                }
             }
             else if (difficulty == 1)           // medium -> combined easy animations and random change during setup
             {
@@ -317,10 +326,10 @@ public class Chat : MonoBehaviour
                         GUI.color = new Color(1, 0, 0, 1);
                     }
                     size = GUI.skin.label.CalcSize(new GUIContent(leaderboardNames[i]));
-                    GUI.Label(new Rect((Screen.width - size.x) / 2 - size.x, ok, size.x, size.y), leaderboardNames[i]);
+                    GUI.Label(new Rect(Screen.width / 2 - 150 , ok, size.x, size.y), leaderboardNames[i]);
 
                     size = GUI.skin.label.CalcSize(new GUIContent(Convert.ToString(leaderboardPoints[i])));
-                    GUI.Label(new Rect((Screen.width - size.x) / 2 + 20, ok, size.x, size.y), Convert.ToString(leaderboardPoints[i]));
+                    GUI.Label(new Rect(Screen.width / 2 + 20, ok, size.x, size.y), Convert.ToString(leaderboardPoints[i]));
 
                     if (name.Equals(leaderboardNames[i]))
                         GUI.color = backupColor;
@@ -410,6 +419,7 @@ public class Chat : MonoBehaviour
     {
         if (currentMessage.Equals(currentString))
         {
+            correctSound.Play();
             if (getTime() > 20 * 1/currentString.Length)
             {
                 switch (difficulty) 
@@ -440,8 +450,9 @@ public class Chat : MonoBehaviour
             reset(0);          
         }
         else
-        {           
+        {
             lives--;
+            wrongSound.Play();
             checkIfAlive();
             reset(0);
         }
@@ -456,7 +467,81 @@ public class Chat : MonoBehaviour
     private void checkIfAlive()
     {
         runningState = lives > 0;
+        if (!runningState)
+        {
+            if (!updatedLeaderboard) {
+                updateLeaderboard();
+                updatedLeaderboard = true;
+            }
+        }
+        
     }
+
+
+    void Awake()
+    {
+        source = GetComponents<AudioSource>();
+        correctSound = source[0];
+        wrongSound = source[1];
+        ambientalSound = source[2];
+        ambientalSound.Play();
+   
+    }
+
+    private struct helper
+    {
+        public string username;
+        public int score;
+    }
+
+    private void updateLeaderboard()
+    {
+        int line_parity = 0;
+        file = new StreamReader(LEADERBOARD_FILENAME);
+        leaderboardNames.Clear();
+        leaderboardPoints.Clear();
+
+        while ((line = file.ReadLine()) != null)
+        {
+            if (line_parity % 2 == 0)
+                leaderboardNames.Add(line);
+            else
+                leaderboardPoints.Add(Convert.ToInt32(line));
+            line_parity++;
+        }
+        string variable = file.ReadToEnd();
+        file.Close();
+
+
+        helper[] array = new helper[11];
+
+        for (int i = 0; i < leaderboardNames.Count; i++)
+        {
+            array[i].username = leaderboardNames[i];
+            array[i].score = leaderboardPoints[i];
+        }
+
+        array[10].username = name;
+        array[10].score = score;
+
+        // Sort the array
+        Array.Sort(array, delegate (helper h1, helper h2)
+        {
+            return h2.score.CompareTo(h1.score);
+        });
+
+        // Write the leaderboard to the file
+        FileStream fileStream = new FileStream(LEADERBOARD_FILENAME, FileMode.Create);
+        StreamWriter writer = new StreamWriter(fileStream);
+
+        for (int i = 0; i < leaderboardNames.Count; i++)
+        {
+            writer.WriteLine(array[i].username);
+            writer.WriteLine(array[i].score);
+        }
+        writer.Close();
+    }
+
 
     private void checkLevel()
     {
