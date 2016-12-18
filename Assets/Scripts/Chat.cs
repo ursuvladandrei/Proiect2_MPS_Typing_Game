@@ -77,9 +77,23 @@ public class Chat : MonoBehaviour
     private float volLowRange = .5f;
     private float volHighRange = 1.0f;
 
+    private int isPause;
+    private int error;
 
     private void OnGUI()
     {
+        difficulty = 2;
+        Event e = Event.current;
+        if (e.type == EventType.KeyDown && e.control && e.keyCode == KeyCode.Q)
+        {
+            isPause = 1 - isPause;
+        }
+
+        if (e.type == EventType.KeyDown && e.control && e.keyCode == KeyCode.W)
+        {
+            error = 1 - error;
+        }
+
         if (runningState)        // Game ON state
         {
             currentMessage = GUI.TextField(new Rect(0, Screen.height - 40, Screen.width - 100, 20), currentMessage);
@@ -258,12 +272,13 @@ public class Chat : MonoBehaviour
                 }
                 else if (check == 4)    // make text appear and dissapear
                 {
-                    if (rd.Next(1000) > 900)
+                    if (rd.Next(1000) > 900 || isPause == 1)
                         GUI.Label(new Rect((Screen.width - size.x) / 2 + offsetX, (Screen.height - size.y) / 2 + offsetY, size.x, size.y), currentString);
+
                 }
 
                 // Medium random change during text view in medium level
-                if (rd.Next(200) == 0)
+                if (rd.Next(200) == 0 && isPause == 0)
                     reset(1);
             }
 
@@ -417,7 +432,27 @@ public class Chat : MonoBehaviour
 
     private void checkWord()
     {
-        if (currentMessage.Equals(currentString))
+        bool b = false;
+        if(error == 1)
+        {
+            if(currentMessage.Length >= currentString.Length-1 && currentMessage.Length <= currentString.Length + 1)
+            {
+                int minLength = currentMessage.Length < currentString.Length ? currentMessage.Length : currentString.Length;
+                int nrError = 0;
+                if (currentMessage.Length != currentString.Length)
+                    nrError++;
+                for (int i = 0; i < minLength;i++)
+                {
+                    if (currentMessage[i] != currentString[i])
+                        nrError++;
+                }
+
+                if (nrError <= 1)
+                    b = true;
+            }
+        }
+
+        if (currentMessage.Equals(currentString) || b)
         {
             correctSound.Play();
             if (getTime() > 20 * 1/currentString.Length)
@@ -557,6 +592,8 @@ public class Chat : MonoBehaviour
 
     private void rotate()
     {
+        if (isPause == 1)
+            goto et1;
         if (rotateTime == 0)
         {
             rotateCheck = rd.Next(2);
@@ -579,12 +616,15 @@ public class Chat : MonoBehaviour
             offsetRotate--;
         }
 
+        et1:
         backupRotation = GUI.matrix;
         GUIUtility.RotateAroundPivot(offsetRotate, new Vector2(Screen.width / 2 + offsetX, Screen.height / 2 + offsetY));
     }
 
     private void translate()
     {
+        if (isPause == 1)
+            return;
         if (translateTime == 0)
         {
             translateCheck = rd.Next(4);
@@ -655,7 +695,8 @@ public class Chat : MonoBehaviour
     {
         if (runningState)
         {
-            time += Time.deltaTime;
+            if (isPause == 0)
+                time += Time.deltaTime;
             if (difficulty == 0 && time >= easyTime)
             {
                 lives--;
