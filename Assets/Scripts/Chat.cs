@@ -82,7 +82,6 @@ public class Chat : MonoBehaviour
 
     private void OnGUI()
     {
-        difficulty = 2;
         Event e = Event.current;
         if (e.type == EventType.KeyDown && e.control && e.keyCode == KeyCode.Q)
         {
@@ -96,7 +95,9 @@ public class Chat : MonoBehaviour
 
         if (runningState)        // Game ON state
         {
+            GUI.SetNextControlName("MyTextField");
             currentMessage = GUI.TextField(new Rect(0, Screen.height - 40, Screen.width - 100, 20), currentMessage);
+            GUI.FocusControl("MyTextField");
             // Display score & lives & time 
             GUI.skin.label.fontSize = 20;
             backupColor = GUI.color;
@@ -302,7 +303,11 @@ public class Chat : MonoBehaviour
             GUI.skin.label.fontSize = 20;
             size = GUI.skin.label.CalcSize(new GUIContent("Enter name and get ready!"));
             GUI.Label(new Rect((Screen.width - size.x) / 2, (Screen.height - size.y) / 2 - size.y, size.x, size.y), "Enter name and get ready!");
+
+            GUI.SetNextControlName("MyNameField");
             name = GUI.TextField(new Rect((Screen.width) / 2 - 100, (Screen.height) / 2, 200, 20), name);
+            GUI.FocusControl("MyNameField");
+
             if (GUI.Button(new Rect((Screen.width - size.x) / 2, (Screen.height - size.y) / 2 + 2*size.y, size.x, size.y), "Start"))
             {
                 if (name.Length != 0)
@@ -354,6 +359,10 @@ public class Chat : MonoBehaviour
 
                 // Enter listener
                 if (Event.current.keyCode == KeyCode.Escape)
+                {
+                    leaderBoardState = false;
+                }
+                if (GUI.Button(new Rect((Screen.width - 120) / 2, (Screen.height - 3 * size.y), 120, size.y), "Back"))
                 {
                     leaderBoardState = false;
                 }
@@ -507,7 +516,9 @@ public class Chat : MonoBehaviour
             if (!updatedLeaderboard) {
                 updateLeaderboard();
                 updatedLeaderboard = true;
+
             }
+            leaderBoardState = true;
         }
         
     }
@@ -737,7 +748,11 @@ public class Chat : MonoBehaviour
     // reset 1 soft reset (for mid change during gameplay)
     private void reset(int set)
     {
-        currentString = words[rd.Next(words.Count)];
+        if (set == 0)
+        {
+            currentString = words[rd.Next(words.Count)];
+        }
+
         sizes.Clear();
         for (int i = 0; i < currentString.Length; i++)
         {
@@ -757,9 +772,9 @@ public class Chat : MonoBehaviour
             offsetX = 0;
             offsetY = 0;
 
-            easyTime = 0.65f * currentString.Length;
+            easyTime = 0.85f * currentString.Length;
             mediumTime = 0.75f * currentString.Length;
-            hardTime = 0.85f * currentString.Length;
+            hardTime = 0.70f * currentString.Length;
         }
         
     }
