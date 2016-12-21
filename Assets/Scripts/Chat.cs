@@ -454,7 +454,6 @@ public class Chat : MonoBehaviour
 
         if (currentMessage.Equals(currentString) || b)
         {
-            camera.backgroundColor = Color.red;
             correctSound.Play();
 
             if (getTime() > 20 * 1/currentString.Length)
@@ -489,7 +488,6 @@ public class Chat : MonoBehaviour
         else
         {
             lives--;
-            camera.backgroundColor = Color.blue;
             wrongSound.Play();
             checkIfAlive();
             reset(0);
@@ -498,8 +496,7 @@ public class Chat : MonoBehaviour
         currentMessage = string.Empty;
 
         checkIfAlive();
-        checkLevel();
-        
+        checkLevel();     
     }
 
     private void checkIfAlive()
