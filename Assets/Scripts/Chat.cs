@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System;
 using System.IO;
+using System.Collections;
 
 public class Chat : MonoBehaviour
 {
@@ -61,6 +62,7 @@ public class Chat : MonoBehaviour
 
     public bool runningState;
     public bool leaderBoardState;
+    public bool leaderBoardRead;
     public bool enterNameState;
 
     private const int POINTSTOMEDIUM = 40;
@@ -93,19 +95,21 @@ public class Chat : MonoBehaviour
             error = 1 - error;
         }
 
-        if (runningState)        // Game ON state
+        // Game ON state
+        if (runningState)        
         {
             GUI.SetNextControlName("MyTextField");
             currentMessage = GUI.TextField(new Rect(0, Screen.height - 40, Screen.width - 100, 20), currentMessage);
             GUI.FocusControl("MyTextField");
+
             // Display score & lives & time 
-            GUI.skin.label.fontSize = 20;
+            GUI.skin.label.fontSize = 30;
             backupColor = GUI.color;
             GUI.color = bonusColor;
-            GUI.Label(new Rect(20, 20, 100, 50), "Score: " + score);
+            GUI.Label(new Rect(20, fontSize, 180, 50), "Score: " + score);
             GUI.color = backupColor;
-            GUI.Label(new Rect(20, 40, 100, 50), "Lives: " + lives);
-            GUI.Label(new Rect(20, 60, 100, 50), "Time: " + String.Format("{0:0.00}", getTime()));
+            GUI.Label(new Rect(20, 2 * fontSize, 180, 50), "Lives: " + lives);
+            GUI.Label(new Rect(20, 3 * fontSize, 180, 50), "Time: " + String.Format("{0:0.00}", getTime()));
 
             GUI.skin.label.fontSize = 30;
             size = GUI.skin.label.CalcSize(new GUIContent(currentString));
@@ -300,7 +304,7 @@ public class Chat : MonoBehaviour
             }
         } else if (enterNameState)
         {
-            GUI.skin.label.fontSize = 20;
+            GUI.skin.label.fontSize = 30;
             size = GUI.skin.label.CalcSize(new GUIContent("Enter name and get ready!"));
             GUI.Label(new Rect((Screen.width - size.x) / 2, (Screen.height - size.y) / 2 - size.y, size.x, size.y), "Enter name and get ready!");
 
@@ -315,7 +319,6 @@ public class Chat : MonoBehaviour
                     enterNameState = false;
                     runningState = true;
                     resetGame();
-
                 }
             }
             // Enter listener
@@ -361,10 +364,12 @@ public class Chat : MonoBehaviour
                 if (Event.current.keyCode == KeyCode.Escape)
                 {
                     leaderBoardState = false;
+                    updatedLeaderboard = false;
                 }
                 if (GUI.Button(new Rect((Screen.width - 120) / 2, (Screen.height - 3 * size.y), 120, size.y), "Back"))
                 {
                     leaderBoardState = false;
+                    updatedLeaderboard = false;
                 }
 
             }
@@ -381,20 +386,6 @@ public class Chat : MonoBehaviour
                 if (GUI.Button(new Rect((Screen.width - size.x) / 2, (Screen.height - size.y) / 2 + size.y, size.x, size.y), "Show Leaderboard"))
                 {
                     leaderBoardState = true;
-                    // Analyze leaderboard file
-                    ok = 0;
-                    file = new StreamReader(LEADERBOARD_FILENAME);
-                    leaderboardNames.Clear();
-                    leaderboardPoints.Clear();
-                    while ((line = file.ReadLine()) != null)
-                    {
-                        if (ok % 2 == 0)
-                            leaderboardNames.Add(line);
-                        else
-                            leaderboardPoints.Add(Convert.ToInt32(line));
-                        ok++;
-                    }
-                    ok = 0;
                 }
 
                 size = GUI.skin.label.CalcSize(new GUIContent("Exit"));
@@ -463,7 +454,9 @@ public class Chat : MonoBehaviour
 
         if (currentMessage.Equals(currentString) || b)
         {
+            camera.backgroundColor = Color.red;
             correctSound.Play();
+
             if (getTime() > 20 * 1/currentString.Length)
             {
                 switch (difficulty) 
@@ -496,6 +489,7 @@ public class Chat : MonoBehaviour
         else
         {
             lives--;
+            camera.backgroundColor = Color.blue;
             wrongSound.Play();
             checkIfAlive();
             reset(0);
@@ -519,19 +513,16 @@ public class Chat : MonoBehaviour
 
             }
             leaderBoardState = true;
-        }
-        
+        }     
     }
-
 
     void Awake()
     {
         source = GetComponents<AudioSource>();
-        correctSound = source[0];
-        wrongSound = source[1];
-        ambientalSound = source[2];
+        correctSound = source[1];
+        wrongSound = source[2];
+        ambientalSound = source[0];
         ambientalSound.Play();
-   
     }
 
     private struct helper
@@ -542,22 +533,8 @@ public class Chat : MonoBehaviour
 
     private void updateLeaderboard()
     {
-        int line_parity = 0;
-        file = new StreamReader(LEADERBOARD_FILENAME);
-        leaderboardNames.Clear();
-        leaderboardPoints.Clear();
-
-        while ((line = file.ReadLine()) != null)
-        {
-            if (line_parity % 2 == 0)
-                leaderboardNames.Add(line);
-            else
-                leaderboardPoints.Add(Convert.ToInt32(line));
-            line_parity++;
-        }
-        string variable = file.ReadToEnd();
-        file.Close();
-
+        Debug.Log("Hellow, gurl");
+        Debug.Log(leaderboardNames.Count);
 
         helper[] array = new helper[11];
 
@@ -579,11 +556,16 @@ public class Chat : MonoBehaviour
         // Write the leaderboard to the file
         FileStream fileStream = new FileStream(LEADERBOARD_FILENAME, FileMode.Create);
         StreamWriter writer = new StreamWriter(fileStream);
+        leaderboardNames.Clear();
+        leaderboardPoints.Clear();
 
-        for (int i = 0; i < leaderboardNames.Count; i++)
+        for (int i = 0; i < 10; i++)
         {
             writer.WriteLine(array[i].username);
             writer.WriteLine(array[i].score);
+
+            leaderboardNames.Add(array[i].username);
+            leaderboardPoints.Add(array[i].score);
         }
         writer.Close();
     }
@@ -700,6 +682,22 @@ public class Chat : MonoBehaviour
         reset(0);
         difficulty = 0;
         name = "";
+
+        // Analyze leaderboard file
+        ok = 0;
+        file = new StreamReader(LEADERBOARD_FILENAME);
+        leaderboardNames.Clear();
+        leaderboardPoints.Clear();
+        while ((line = file.ReadLine()) != null)
+        {
+            if (ok % 2 == 0)
+                leaderboardNames.Add(line);
+            else
+                leaderboardPoints.Add(Convert.ToInt32(line));
+            ok++;
+        }
+        ok = 0;
+        file.Close();
     }
 
     public void Update()
@@ -744,6 +742,7 @@ public class Chat : MonoBehaviour
             return hardTime - time;
         }
     }
+
     // reset 0 -> hard reset
     // reset 1 soft reset (for mid change during gameplay)
     private void reset(int set)
@@ -788,5 +787,6 @@ public class Chat : MonoBehaviour
         offsetRotate = 0;
         score = 0;
         lives = 5;
+        updatedLeaderboard = false;
     }
 }
